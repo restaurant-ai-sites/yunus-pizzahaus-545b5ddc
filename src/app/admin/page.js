@@ -1,0 +1,272 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+
+const inputCls =
+  "w-full rounded-xl border border-coffee/20 bg-cream px-3 py-2 outline-none focus:border-terra";
+const btnCls =
+  "rounded-full bg-terra px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-terradark disabled:opacity-40";
+
+const STATUS_LABELS = {
+  new: "🆕 Neu",
+  confirmed: "✅ Bestätigt",
+  preparing: "👨‍🍳 In Zubereitung",
+  ready: "📦 Fertig",
+  delivered: "🚗 Geliefert/Abgeholt",
+  cancelled: "❌ Storniert",
+};
+
+function api(path, key, init = {}) {
+  return fetch(path, {
+    ...init,
+    headers: { "Content-Type": "application/json", "x-admin-key": key, ...(init.headers || {}) },
+  }).then(async (r) => {
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || "Fehler");
+    return data;
+  });
+}
+
+function euro(n) {
+  return Number(n).toFixed(2).replace(".", ",") + " €";
+}
+
+export default function AdminPage() {
+  const [adminKey, setAdminKey] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [tab, setTab] = useState("bestellungen");
+  const [error, setError] = useState("");
+
+  async function login(e) {
+    e.preventDefault();
+    setError("");
+    try {
+      await api("/api/admin/settings", adminKey);
+      sessionStorage.setItem("adminKey", adminKey);
+      setAuthed(true);
+    } catch {
+      setError("Falsches Passwort.");
+    }
+  }
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem("adminKey");
+    if (saved) {
+      api("/api/admin/settings", saved)
+        .then(() => { setAdminKey(saved); setAuthed(true); })
+        .catch(() => sessionStorage.removeItem("adminKey"));
+    }
+  }, []);
+
+  if (!authed) {
+    return (
+      <main className="mx-auto max-w-sm px-4 py-24">
+        <h1 className="text-center font-display text-3xl font-extrabold">Admin-Bereich</h1>
+        <form onSubmit={login} className="mt-8 space-y-4">
+          <input type="password" placeholder="Admin-Passwort" value={adminKey}
+            onChange={(e) => setAdminKey(e.target.value)} className={inputCls} autoFocus />
+          {error && <p className="text-center text-sm text-red-700">{error}</p>}
+          <button className={`${btnCls} w-full`}>Anmelden</button>
+        </form>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto max-w-4xl px-4 py-10">
+      <h1 className="font-display text-3xl font-extrabold">Admin-Bereich</h1>
+      <div className="mt-6 flex gap-2 border-b border-coffee/15">
+        {[["bestellungen", "📋 Bestellungen"], ["einstellungen", "⚙️ Einstellungen"]].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={`px-4 py-2.5 text-sm ${tab === id ? "border-b-2 border-terra font-bold" : "text-coffee/60"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === "bestellungen" && <OrdersTab adminKey={adminKey} />}
+      {tab === "einstellungen" && <SettingsTab adminKey={adminKey} />}
+    </main>
+  );
+}
+
+function OrdersTab({ adminKey }) {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [data, setData] = useState(null);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(
+    () => api(`/api/admin/orders?date=${date}`, adminKey).then(setData).catch((e) => setMsg(e.message)),
+    [adminKey, date]
+  );
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 30_000); // 30 sn'de bir yenile
+    return () => clearInterval(interval);
+  }, [load]);
+
+  async function setStatus(id, status) {
+    try {
+      await api("/api/admin/orders", adminKey, {
+        method: "PATCH",
+        body: JSON.stringify({ id, status }),
+      });
+      load();
+    } catch (e) { setMsg(e.message); }
+  }
+
+  return (
+    <div className="mt-8">
+      <div className="flex flex-wrap items-center gap-4">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+          className={`${inputCls} max-w-xs`} />
+        {data && (
+          <p className="text-sm text-coffee/70">
+            <strong>{data.count}</strong> Bestellung(en) · Umsatz: <strong>{euro(data.revenue)}</strong>
+          </p>
+        )}
+      </div>
+      {msg && <p className="mt-3 text-sm text-red-700">{msg}</p>}
+
+      <div className="mt-6 space-y-4">
+        {data?.orders?.map((o) => (
+          <div key={o.id}
+            className={`rounded-2xl border p-5 ${o.status === "new" ? "border-terra bg-terra/5" : "border-coffee/10"} ${o.status === "cancelled" ? "opacity-50" : ""}`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="font-display font-bold">
+                  {new Date(o.created_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}{" "}
+                  · {o.customer_name}
+                  <span className="ml-2 text-sm font-normal">
+                    {o.order_type === "delivery" ? "🚗 Lieferung" : "🏃 Abholung"}
+                  </span>
+                </p>
+                <p className="text-sm text-coffee/65">
+                  📞 {o.customer_phone || "—"}
+                  {o.delivery_address && <> · 📍 {o.delivery_address}</>}
+                </p>
+                <p className="mt-1 text-sm">
+                  {o.payment_status === "paid" ? "✅ PayPal bezahlt" : "💶 Barzahlung"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-display text-xl font-extrabold">{euro(o.total_amount)}</p>
+                <select value={o.status} onChange={(e) => setStatus(o.id, e.target.value)}
+                  className="mt-2 rounded-lg border border-coffee/20 bg-cream px-2 py-1 text-sm">
+                  {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <ul className="mt-3 border-t border-coffee/10 pt-3 text-sm">
+              {(o.items || []).map((item, i) => (
+                <li key={i} className="flex justify-between">
+                  <span>{item.qty}× {item.name}</span>
+                  <span>{euro(item.line_total)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        {data?.orders?.length === 0 && (
+          <p className="py-8 text-center text-coffee/50">Keine Bestellungen an diesem Tag.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SettingsTab({ adminKey }) {
+  const [s, setS] = useState(null);
+  const [newSecret, setNewSecret] = useState("");
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    api("/api/admin/settings", adminKey).then((d) => setS(d.settings));
+  }, [adminKey]);
+
+  if (!s) return <p className="mt-8 text-coffee/60">Lädt…</p>;
+
+  async function save(e) {
+    e.preventDefault();
+    setMsg("");
+    try {
+      await api("/api/admin/settings", adminKey, {
+        method: "PUT",
+        body: JSON.stringify({ ...s, paypal_secret: newSecret }),
+      });
+      setMsg("✓ Gespeichert");
+      setNewSecret("");
+      if (newSecret) setS({ ...s, has_paypal_secret: true });
+    } catch (err) { setMsg(err.message); }
+  }
+
+  return (
+    <form onSubmit={save} className="mt-8 max-w-md space-y-5">
+      <div className="space-y-2">
+        <label className="flex items-center gap-3">
+          <input type="checkbox" checked={s.pickup_enabled}
+            onChange={(e) => setS({ ...s, pickup_enabled: e.target.checked })} />
+          <span>🏃 Abholung anbieten</span>
+        </label>
+        <label className="flex items-center gap-3">
+          <input type="checkbox" checked={s.delivery_enabled}
+            onChange={(e) => setS({ ...s, delivery_enabled: e.target.checked })} />
+          <span>🚗 Lieferung anbieten</span>
+        </label>
+        <label className="flex items-center gap-3">
+          <input type="checkbox" checked={s.cash_enabled}
+            onChange={(e) => setS({ ...s, cash_enabled: e.target.checked })} />
+          <span>💶 Barzahlung erlauben</span>
+        </label>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-sm text-coffee/70">Liefergebühr (€)</span>
+          <input type="number" step="0.5" min="0" value={s.delivery_fee} className={inputCls}
+            onChange={(e) => setS({ ...s, delivery_fee: e.target.value })} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-sm text-coffee/70">Mindestbestellwert (€)</span>
+          <input type="number" step="0.5" min="0" value={s.min_order_value} className={inputCls}
+            onChange={(e) => setS({ ...s, min_order_value: e.target.value })} />
+        </label>
+      </div>
+      <label className="block">
+        <span className="mb-1 block text-sm text-coffee/70">Zubereitungszeit (Minuten)</span>
+        <input type="number" min="5" step="5" value={s.prep_time_minutes} className={inputCls}
+          onChange={(e) => setS({ ...s, prep_time_minutes: e.target.value })} />
+      </label>
+
+      <div className="rounded-2xl bg-sand/60 p-5">
+        <h3 className="font-display font-bold">💳 PayPal (Online-Zahlung)</h3>
+        <p className="mt-1 text-xs text-coffee/60">
+          developer.paypal.com → Apps & Credentials → Live → Client-ID und Secret hier eintragen.
+        </p>
+        <label className="mt-4 block">
+          <span className="mb-1 block text-sm text-coffee/70">PayPal Client-ID</span>
+          <input value={s.paypal_client_id || ""} className={inputCls}
+            onChange={(e) => setS({ ...s, paypal_client_id: e.target.value })} />
+        </label>
+        <label className="mt-3 block">
+          <span className="mb-1 block text-sm text-coffee/70">
+            PayPal Secret {s.has_paypal_secret && "(gespeichert — nur bei Änderung ausfüllen)"}
+          </span>
+          <input type="password" value={newSecret} placeholder={s.has_paypal_secret ? "••••••••" : ""}
+            className={inputCls} onChange={(e) => setNewSecret(e.target.value)} />
+        </label>
+        <label className="mt-3 flex items-center gap-3">
+          <input type="checkbox" checked={s.paypal_sandbox}
+            onChange={(e) => setS({ ...s, paypal_sandbox: e.target.checked })} />
+          <span className="text-sm">Sandbox-Modus (nur zum Testen)</span>
+        </label>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <button className={btnCls}>Speichern</button>
+        {msg && <span className="text-sm">{msg}</span>}
+      </div>
+    </form>
+  );
+}

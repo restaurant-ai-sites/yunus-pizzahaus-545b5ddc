@@ -1,0 +1,47 @@
+{
+  "restaurant": {
+    "name": "Yunus-Pizzahaus",
+    "tagline": "Genussvolle Pizza, die begeistert!",
+    "about": "Willkommen im Yunus-Pizzahaus, Ihrem italienischen Restaurant im Herzen Berlins. Seit 2010 verwöhnen wir unsere Gäste mit köstlichen Pizzen und traditionellen Gerichten der italienischen Küche. Unser familiengeführtes Restaurant bietet eine warme und einladende Atmosphäre, ideal für Familien und Paare. Genießen Sie unsere Spezialitäten im Innenbereich oder auf unserer gemütlichen Terrasse. Wir legen großen Wert auf frische Zutaten und bieten auch vegetarische Optionen sowie einen praktischen Paketservice an. Besuchen Sie uns und erleben Sie den authentischen Geschmack Italiens!",
+    "phone": "030 2845 6790",
+    "email": "info@yunuspizza.de",
+    "address": "Hauptstraße 15, 10115 Berlin",
+    "openingHours": {
+      "Montag": "Ruhetag",
+      "Dienstag": "11:30-22:00",
+      "Mittwoch": "11:30-22:00",
+      "Donnerstag": "11:30-22:00",
+      "Freitag": "11:30-22:00",
+      "Samstag": "11:30-22:00",
+      "Sonntag": "12:00-21:00"
+    },
+    "cuisine": "Italienische Küche",
+    "priceRange": "mid"
+  },
+  "seo": {
+    "title": "Yunus-Pizzahaus - Italienische Küche in Berlin",
+    "description": "Entdecken Sie das Yunus-Pizzahaus in Berlin. Genießen Sie köstliche Pizzen und italienische Spezialitäten in familiärer Atmosphäre."
+  },
+  "content": {
+    "welcomeHeading": "Herzlich Willkommen im Yunus-Pizzahaus!",
+    "welcomeSubtext": "Genießen Sie italienische Köstlichkeiten in gemütlicher Atmosphäre.",
+    "reservationCta": "Jetzt Tisch reservieren",
+    "orderCta": "Online bestellen",
+    "contactHeading": "Kontaktieren Sie uns",
+    "footerText": "Besuchen Sie uns in Berlin-Mitte!"
+  },
+  "images": {
+    "food": "/images/food_2.webp",
+    "hero": "/images/hero_generated.webp"
+  },
+  "features": {
+    "hasReservation": true,
+    "hasOrdering": true,
+    "paypalClientId": ""
+  },
+  "menu": [],
+  "legal": {
+    "impressum": "## Impressum\n\n**Angaben gemäß § 5 TMG**\n\nYunus-Pizzahaus\nHauptstraße 15, 10115 Berlin\n030 2845 6790\ninfo@yunuspizza.de\n\n**Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:**\nYunus-Pizzahaus\n\n**Haftungsausschluss:**\nDie Inhalte dieser Website wurden mit größtmöglicher Sorgfalt erstellt. Für die Richtigkeit, Vollständigkeit und Aktualität der Inhalte können wir jedoch keine Gewähr übernehmen.\n\n**Urheberrecht:**\nDie durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.\n",
+    "datenschutz": "## Datenschutzerklärung\n\n**1. Datenschutz auf einen Blick**\n\nDiese Datenschutzerklärung klärt Sie über die Art, den Umfang und Zweck der Verarbeitung von personenbezogenen Daten auf unserer Website auf.\n\n**2. Verantwortliche Stelle**\n\nYunus-Pizzahaus\nHauptstraße 15, 10115 Berlin\nE-Mail: info@yunuspizza.de\n\n**3. Erhebung und Speicherung personenbezogener Daten**\n\nBeim Besuch unserer Website werden automatisch Informationen allgemeiner Natur erfasst (Server-Log-Dateien). Diese Daten erlauben keine Rückschlüsse auf Ihre Person.\n\n**4. Kontaktformular**\n\nWenn Sie uns per Kontaktformular Anfragen zukommen lassen, werden Ihre Angaben zwecks Bearbeitung der Anfrage und für den Fall von Anschlussfragen gespeichert.\n\n**5. Cookies**\n\nUnsere Website verwendet Cookies. Durch die Nutzung unserer Website erklären Sie sich damit einverstanden.\n\n**6. Ihre Rechte**\n\nSie haben jederzeit das Recht auf Auskunft, Berichtigung, Löschung oder Einschränkung der Verarbeitung Ihrer gespeicherten personenbezogenen Daten.\n\n**7. Kontakt Datenschutzbeauftragter**\n\nBei Fragen zum Datenschutz wenden Sie sich an: info@yunuspizza.de\n"
+  }
+}
