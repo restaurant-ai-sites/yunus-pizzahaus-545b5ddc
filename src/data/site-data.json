@@ -15,12 +15,12 @@
       "Samstag": "11:30-22:00",
       "Sonntag": "12:00-21:00"
     },
-    "cuisine": "Türkische Küche",
+    "cuisine": "Italienische Küche",
     "priceRange": "mid"
   },
   "seo": {
-    "title": "Yunus-Pizzahaus - Türkische Küche in Berlin",
-    "description": "Entdecken Sie das Yunus-Pizzahaus in Berlin. Genießen Sie köstliche Pizzen und türkische Spezialitäten in familiärer Atmosphäre."
+    "title": "Yunus-Pizzahaus - Italienische Küche in Berlin",
+    "description": "Entdecken Sie das Yunus-Pizzahaus in Berlin. Genießen Sie köstliche Pizzen und italienische Spezialitäten in familiärer Atmosphäre."
   },
   "content": {
     "welcomeHeading": "",
@@ -31,7 +31,7 @@
     "footerText": ""
   },
   "images": {
-    "food": "/images/food_2.webp",
+    "food": "/images/food_3.webp",
     "hero": "/images/hero_generated.webp"
   },
   "features": {
