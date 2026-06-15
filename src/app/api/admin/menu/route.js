@@ -25,6 +25,7 @@ export async function POST(request) {
         description: body.description || "",
         price: Number(body.price),
         image_url: body.image_url || null,
+        prep_minutes: Number(body.prep_minutes) || 0,
         is_menu: Boolean(body.is_menu),
         active: body.active !== false,
         sort_order: Number(body.sort_order) || 0,
@@ -49,6 +50,7 @@ export async function PATCH(request) {
     if (fields.description !== undefined) update.description = fields.description;
     if (fields.price !== undefined) update.price = Number(fields.price);
     if (fields.image_url !== undefined) update.image_url = fields.image_url;
+    if (fields.prep_minutes !== undefined) update.prep_minutes = Number(fields.prep_minutes) || 0;
     if (fields.is_menu !== undefined) update.is_menu = Boolean(fields.is_menu);
     if (fields.active !== undefined) update.active = Boolean(fields.active);
     if (fields.sort_order !== undefined) update.sort_order = Number(fields.sort_order);

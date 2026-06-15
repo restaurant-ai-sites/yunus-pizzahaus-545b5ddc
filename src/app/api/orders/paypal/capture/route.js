@@ -22,13 +22,13 @@ export async function POST(request) {
     const order = await insertOrder(customer, pricing, orderType, "paid", paypalOrderId);
 
     try { await notifyOwnerNewOrder(order, pricing); } catch (e) { console.error(e); }
-    try { await notifyCustomerOrderConfirmed(order, pricing, settings.prep_time_minutes); } catch (e) { console.error(e); }
+    try { await notifyCustomerOrderConfirmed(order, pricing, pricing.prepMinutes); } catch (e) { console.error(e); }
 
     return NextResponse.json({
       confirmed: true,
       orderId: order.id,
       total: pricing.total,
-      prepMinutes: settings.prep_time_minutes,
+      prepMinutes: pricing.prepMinutes,
     });
   } catch (e) {
     console.error("paypal capture error:", e);

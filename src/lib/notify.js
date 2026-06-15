@@ -47,7 +47,7 @@ export async function notifyOwnerNewOrder(order, pricing) {
 }
 
 function pickupTime(prepMinutes) {
-  return new Date(Date.now() + prepMinutes * 60_000).toLocaleTimeString("de-DE", {
+  return new Date(Date.now() + (Number(prepMinutes) || 30) * 60_000).toLocaleTimeString("de-DE", {
     hour: "2-digit",
     minute: "2-digit",
     timeZone: "Europe/Berlin",
@@ -55,8 +55,9 @@ function pickupTime(prepMinutes) {
 }
 
 function fulfillmentNote(order, prepMinutes) {
+  const minutes = Number(prepMinutes) || 30;
   if (order.order_type === "delivery") {
-    return `<p>Ihre Bestellung wurde aufgenommen und wird in ca. <strong>${prepMinutes} Minuten</strong> zu Ihnen nach Hause geliefert${order.delivery_address ? ` (${order.delivery_address})` : ""}.</p>`;
+    return `<p>Ihre Bestellung wurde aufgenommen und wird in ca. <strong>${minutes} Minuten</strong> zu Ihnen nach Hause geliefert${order.delivery_address ? ` (${order.delivery_address})` : ""}.</p>`;
   }
   return `<p>Sie können Ihre Bestellung um <strong>${pickupTime(prepMinutes)} Uhr</strong> bei <strong>${siteData.restaurant.address || siteData.restaurant.name}</strong> abholen.</p>`;
 }

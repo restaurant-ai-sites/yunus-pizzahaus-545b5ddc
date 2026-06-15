@@ -17,6 +17,7 @@ function pickupTime(prepMinutes) {
 
 export default function Checkout() {
   const [cart, setCart] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [settings, setSettings] = useState(null);
   const [orderType, setOrderType] = useState("pickup");
   const [name, setName] = useState("");
@@ -38,6 +39,13 @@ export default function Checkout() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then((d) => setMenuItems([...(d.menus || []), ...((d.categories || []).flatMap((c) => c.items))]))
+      .catch(() => setMenuItems([]));
+  }, []);
+
+  useEffect(() => {
     fetch("/api/orders/settings")
       .then((r) => r.json())
       .then((s) => {
@@ -49,6 +57,11 @@ export default function Checkout() {
   }, []);
 
   const subtotal = cart.reduce((sum, i) => sum + parsePriceClient(i.price) * i.qty, 0);
+  const cartPrepMinutes =
+    cart.reduce((max, ci) => {
+      const item = menuItems.find((m) => m.name === ci.name);
+      return Math.max(max, Number(item?.prep_minutes) || 0);
+    }, 0) || settings?.prepTimeMinutes || 30;
   const deliveryFee = orderType === "delivery" ? (settings?.deliveryFee || 0) : 0;
   const total = subtotal + deliveryFee;
   const formValid = name && phone && (orderType !== "delivery" || address);
@@ -213,7 +226,7 @@ export default function Checkout() {
       {/* Abholung-Hinweis */}
       {orderType === "pickup" && settings && (
         <p className="rounded-2xl bg-sand/60 p-4 text-center text-sm text-coffee/75">
-          📍 Du kannst deine Bestellung um <strong>{pickupTime(settings.prepTimeMinutes)} Uhr</strong> bei{" "}
+          📍 Du kannst deine Bestellung um <strong>{pickupTime(cartPrepMinutes)} Uhr</strong> bei{" "}
           <strong>{siteData.restaurant.address || siteData.restaurant.name}</strong> abholen.
         </p>
       )}

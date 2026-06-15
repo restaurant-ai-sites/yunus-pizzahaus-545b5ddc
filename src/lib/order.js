@@ -5,7 +5,7 @@
  */
 
 import siteData from "../data/site-data.json";
-import { getActiveMenuItems, priceMap } from "./menu";
+import { getActiveMenuItems, itemMap } from "./menu";
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SECRET_KEY;
@@ -48,20 +48,24 @@ export async function getSettings() {
 /** Sepeti sunucu fiyatlarıyla doğrular ve toplamı hesaplar */
 export async function priceCart(cartItems, settings, orderType) {
   const items = await getActiveMenuItems();
-  const prices = priceMap(items);
+  const products = itemMap(items);
   const lines = [];
   let subtotal = 0;
+  let prepMinutes = 0;
 
   for (const item of cartItems || []) {
     const qty = Math.max(1, Math.min(50, parseInt(item.qty) || 1));
-    const unit = prices[item.name];
-    if (unit === undefined) {
+    const product = products[item.name];
+    if (product === undefined) {
       return { error: `Artikel nicht gefunden: ${item.name}` };
     }
+    const unit = product.price;
     lines.push({ name: item.name, qty, unit_price: unit, line_total: +(unit * qty).toFixed(2) });
     subtotal += unit * qty;
+    prepMinutes = Math.max(prepMinutes, product.prep_minutes);
   }
   if (lines.length === 0) return { error: "Der Warenkorb ist leer." };
+  if (prepMinutes <= 0) prepMinutes = Number(settings.prep_time_minutes) || 0;
 
   subtotal = +subtotal.toFixed(2);
   const deliveryFee = orderType === "delivery" ? +Number(settings.delivery_fee || 0).toFixed(2) : 0;
@@ -70,7 +74,7 @@ export async function priceCart(cartItems, settings, orderType) {
   if (orderType === "delivery" && subtotal < Number(settings.min_order_value || 0)) {
     return { error: `Mindestbestellwert für Lieferung: ${Number(settings.min_order_value).toFixed(2).replace(".", ",")} €` };
   }
-  return { lines, subtotal, deliveryFee, total };
+  return { lines, subtotal, deliveryFee, total, prepMinutes };
 }
 
 const DAY_NAMES = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"];
@@ -107,6 +111,7 @@ export async function insertOrder(customer, pricing, orderType, paymentStatus, p
       order_type: orderType,
       items: pricing.lines,
       total_amount: pricing.total,
+      prep_minutes: pricing.prepMinutes,
       currency: "EUR",
       payment_status: paymentStatus,
       paypal_order_id: paypalOrderId,

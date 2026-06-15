@@ -288,7 +288,7 @@ function SettingsTab({ adminKey }) {
   );
 }
 
-const emptyMenuForm = { name: "", description: "", price: "", category: "", image_url: "", is_menu: false };
+const emptyMenuForm = { name: "", description: "", price: "", category: "", image_url: "", is_menu: false, prep_minutes: "" };
 
 function MenuTab({ adminKey }) {
   const [items, setItems] = useState(null);
@@ -346,6 +346,7 @@ function MenuTab({ adminKey }) {
       category: item.category || "",
       image_url: item.image_url || "",
       is_menu: item.is_menu,
+      prep_minutes: item.prep_minutes || "",
     });
   }
 
@@ -378,9 +379,10 @@ function MenuTab({ adminKey }) {
         <input placeholder="Beschreibung" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
         <div className="grid gap-3 sm:grid-cols-2">
           <input placeholder="Preis (€) *" type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls} />
-          <input type="file" accept="image/jpeg,image/png,image/webp"
-            onChange={(e) => e.target.files[0] && uploadImage(e.target.files[0])} className="text-sm" />
+          <input placeholder="Zubereitungszeit (Min.)" type="number" step="5" min="0" value={form.prep_minutes} onChange={(e) => setForm({ ...form, prep_minutes: e.target.value })} className={inputCls} />
         </div>
+        <input type="file" accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => e.target.files[0] && uploadImage(e.target.files[0])} className="text-sm" />
         {uploading && <p className="text-sm text-coffee/60">Bild wird hochgeladen…</p>}
         {form.image_url && <img src={form.image_url} alt="" className="h-20 w-20 rounded-xl object-cover" />}
         <label className="flex items-center gap-2 text-sm">
@@ -406,7 +408,10 @@ function MenuTab({ adminKey }) {
                 <span className="text-sm font-normal text-coffee/60">· {item.category}</span>
               </p>
               {item.description && <p className="text-sm text-coffee/65">{item.description}</p>}
-              <p className="text-sm font-bold text-terra">{euro(item.price)}</p>
+              <p className="text-sm font-bold text-terra">
+                {euro(item.price)}
+                {item.prep_minutes > 0 && <span className="ml-2 font-normal text-coffee/60">· ⏱️ {item.prep_minutes} Min.</span>}
+              </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
               <button onClick={() => toggleActive(item)} className="text-coffee/60 hover:text-coffee">

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sb, PROJECT_ID, getSettings } from "../../../../lib/order";
+import { sb, PROJECT_ID } from "../../../../lib/order";
 import { isAdmin, unauthorized } from "../../../../lib/admin";
 import { notifyCustomerOrderTypeChanged } from "../../../../lib/notify";
 
@@ -50,8 +50,7 @@ export async function PATCH(request) {
 
     if (order_type !== undefined && updated) {
       try {
-        const settings = await getSettings();
-        await notifyCustomerOrderTypeChanged(updated, settings.prep_time_minutes);
+        await notifyCustomerOrderTypeChanged(updated, updated.prep_minutes);
       } catch (e) { console.error("order type notify error:", e); }
     }
 

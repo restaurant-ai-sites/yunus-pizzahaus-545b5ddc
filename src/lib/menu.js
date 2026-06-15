@@ -24,3 +24,12 @@ export function priceMap(items) {
   for (const item of items) prices[item.name] = Number(item.price);
   return prices;
 }
+
+/** { "Pizza Salami": { price, prep_minutes }, ... } — für Preis- und Zeitberechnung */
+export function itemMap(items) {
+  const map = {};
+  for (const item of items) {
+    map[item.name] = { price: Number(item.price), prep_minutes: Number(item.prep_minutes) || 0 };
+  }
+  return map;
+}
