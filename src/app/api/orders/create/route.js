@@ -31,7 +31,7 @@ export async function POST(request) {
       );
     }
 
-    const pricing = priceCart(cart, settings, orderType);
+    const pricing = await priceCart(cart, settings, orderType);
     if (pricing.error) return NextResponse.json({ error: pricing.error }, { status: 400 });
 
     const order = await insertOrder(customer, pricing, orderType, "cash");

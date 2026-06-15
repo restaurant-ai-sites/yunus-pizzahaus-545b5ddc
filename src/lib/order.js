@@ -5,6 +5,7 @@
  */
 
 import siteData from "../data/site-data.json";
+import { getActiveMenuItems, priceMap } from "./menu";
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SB_KEY = process.env.SUPABASE_SECRET_KEY;
@@ -44,29 +45,10 @@ export async function getSettings() {
   return rows?.[0] ? { ...DEFAULT_SETTINGS, ...rows[0] } : { ...DEFAULT_SETTINGS, project_id: PROJECT_ID };
 }
 
-/** "12,90 €" → 12.9 */
-export function parsePrice(str) {
-  const m = String(str).replace(",", ".").match(/(\d+(?:\.\d{1,2})?)/);
-  return m ? parseFloat(m[1]) : NaN;
-}
-
-/** Menüdeki tüm ürünler: { "Pizza Salami": 11.0, ... } */
-export function menuPrices() {
-  const prices = {};
-  for (const section of siteData.menu || []) {
-    for (const item of section.items || []) {
-      if (item?.name) {
-        const p = parsePrice(item.price);
-        if (!Number.isNaN(p)) prices[item.name] = p;
-      }
-    }
-  }
-  return prices;
-}
-
 /** Sepeti sunucu fiyatlarıyla doğrular ve toplamı hesaplar */
-export function priceCart(cartItems, settings, orderType) {
-  const prices = menuPrices();
+export async function priceCart(cartItems, settings, orderType) {
+  const items = await getActiveMenuItems();
+  const prices = priceMap(items);
   const lines = [];
   let subtotal = 0;
 

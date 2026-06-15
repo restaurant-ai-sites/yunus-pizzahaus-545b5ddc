@@ -78,7 +78,7 @@ export default function AdminPage() {
     <main className="mx-auto max-w-4xl px-4 py-10">
       <h1 className="font-display text-3xl font-extrabold">Admin-Bereich</h1>
       <div className="mt-6 flex gap-2 border-b border-coffee/15">
-        {[["bestellungen", "📋 Bestellungen"], ["einstellungen", "⚙️ Einstellungen"]].map(([id, label]) => (
+        {[["bestellungen", "📋 Bestellungen"], ["speisekarte", "🍕 Speisekarte"], ["einstellungen", "⚙️ Einstellungen"]].map(([id, label]) => (
           <button key={id} onClick={() => setTab(id)}
             className={`px-4 py-2.5 text-sm ${tab === id ? "border-b-2 border-terra font-bold" : "text-coffee/60"}`}>
             {label}
@@ -86,6 +86,7 @@ export default function AdminPage() {
         ))}
       </div>
       {tab === "bestellungen" && <OrdersTab adminKey={adminKey} />}
+      {tab === "speisekarte" && <MenuTab adminKey={adminKey} />}
       {tab === "einstellungen" && <SettingsTab adminKey={adminKey} />}
     </main>
   );
@@ -284,5 +285,140 @@ function SettingsTab({ adminKey }) {
         {msg && <span className="text-sm">{msg}</span>}
       </div>
     </form>
+  );
+}
+
+const emptyMenuForm = { name: "", description: "", price: "", category: "", image_url: "", is_menu: false };
+
+function MenuTab({ adminKey }) {
+  const [items, setItems] = useState(null);
+  const [form, setForm] = useState(emptyMenuForm);
+  const [editingId, setEditingId] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = useCallback(
+    () => api("/api/admin/menu", adminKey).then((d) => setItems(d.items)).catch((e) => setMsg(e.message)),
+    [adminKey]
+  );
+  useEffect(() => { load(); }, [load]);
+
+  async function uploadImage(file) {
+    setUploading(true);
+    setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/menu/upload", {
+        method: "POST",
+        headers: { "x-admin-key": adminKey },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setForm((f) => ({ ...f, image_url: data.url }));
+    } catch (e) { setMsg(e.message); }
+    finally { setUploading(false); }
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setMsg("");
+    if (!form.name || form.price === "") { setMsg("Name und Preis sind erforderlich."); return; }
+    try {
+      if (editingId) {
+        await api("/api/admin/menu", adminKey, { method: "PATCH", body: JSON.stringify({ id: editingId, ...form }) });
+      } else {
+        await api("/api/admin/menu", adminKey, { method: "POST", body: JSON.stringify(form) });
+      }
+      setForm(emptyMenuForm);
+      setEditingId(null);
+      load();
+    } catch (e) { setMsg(e.message); }
+  }
+
+  function edit(item) {
+    setEditingId(item.id);
+    setForm({
+      name: item.name,
+      description: item.description || "",
+      price: item.price,
+      category: item.category || "",
+      image_url: item.image_url || "",
+      is_menu: item.is_menu,
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(emptyMenuForm);
+  }
+
+  async function toggleActive(item) {
+    await api("/api/admin/menu", adminKey, { method: "PATCH", body: JSON.stringify({ id: item.id, active: !item.active }) });
+    load();
+  }
+
+  async function remove(item) {
+    if (!confirm(`„${item.name}" wirklich löschen?`)) return;
+    await api(`/api/admin/menu?id=${item.id}`, adminKey, { method: "DELETE" });
+    load();
+  }
+
+  if (!items) return <p className="mt-8 text-coffee/60">Lädt…</p>;
+
+  return (
+    <div className="mt-8 space-y-8">
+      <form onSubmit={save} className="space-y-3 rounded-2xl bg-sand/60 p-5">
+        <h3 className="font-display font-bold">{editingId ? "Artikel bearbeiten" : "Neuer Artikel"}</h3>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
+          <input placeholder="Kategorie (z.B. Pizza)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls} />
+        </div>
+        <input placeholder="Beschreibung" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input placeholder="Preis (€) *" type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls} />
+          <input type="file" accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => e.target.files[0] && uploadImage(e.target.files[0])} className="text-sm" />
+        </div>
+        {uploading && <p className="text-sm text-coffee/60">Bild wird hochgeladen…</p>}
+        {form.image_url && <img src={form.image_url} alt="" className="h-20 w-20 rounded-xl object-cover" />}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={form.is_menu} onChange={(e) => setForm({ ...form, is_menu: e.target.checked })} />
+          🍽️ Dies ist ein Menü (Kombo-Paket aus mehreren Artikeln)
+        </label>
+        {msg && <p className="text-sm text-red-700">{msg}</p>}
+        <div className="flex items-center gap-4">
+          <button className={btnCls} disabled={uploading}>{editingId ? "Speichern" : "Hinzufügen"}</button>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="text-sm text-coffee/60">Abbrechen</button>
+          )}
+        </div>
+      </form>
+
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className={`flex items-center gap-4 rounded-2xl border border-coffee/10 p-4 ${item.active ? "" : "opacity-50"}`}>
+            {item.image_url && <img src={item.image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />}
+            <div className="min-w-0 flex-1">
+              <p className="font-display font-bold">
+                {item.is_menu && "🍽️ "}{item.name}{" "}
+                <span className="text-sm font-normal text-coffee/60">· {item.category}</span>
+              </p>
+              {item.description && <p className="text-sm text-coffee/65">{item.description}</p>}
+              <p className="text-sm font-bold text-terra">{euro(item.price)}</p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1 text-sm">
+              <button onClick={() => toggleActive(item)} className="text-coffee/60 hover:text-coffee">
+                {item.active ? "Deaktivieren" : "Aktivieren"}
+              </button>
+              <button onClick={() => edit(item)} className="text-coffee/60 hover:text-coffee">Bearbeiten</button>
+              <button onClick={() => remove(item)} className="text-red-700 hover:text-red-900">Löschen</button>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="py-8 text-center text-coffee/50">Noch keine Artikel.</p>}
+      </div>
+    </div>
   );
 }

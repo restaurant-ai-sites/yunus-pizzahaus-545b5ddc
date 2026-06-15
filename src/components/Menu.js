@@ -1,30 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import siteData from "../data/site-data.json";
+import { useEffect, useState } from "react";
 import { addToCart } from "../lib/cart";
+
+function euro(n) {
+  return Number(n).toFixed(2).replace(".", ",") + " €";
+}
 
 function MenuItem({ item }) {
   const [added, setAdded] = useState(false);
 
-  if (typeof item === "string" || !item?.price) {
-    return <li className="py-3">{item?.name || item}</li>;
-  }
-
   function add() {
-    addToCart(item.name, item.price);
+    addToCart(item.name, euro(item.price));
     setAdded(true);
     setTimeout(() => setAdded(false), 1200);
   }
 
   return (
     <li className="flex items-center justify-between gap-4 rounded-2xl bg-cream p-4 shadow-sm">
-      <div className="min-w-0">
+      {item.image_url && (
+        <img src={item.image_url} alt={item.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+      )}
+      <div className="min-w-0 flex-1">
         <p className="font-display font-semibold">{item.name}</p>
         {item.description && (
           <p className="mt-0.5 text-sm text-coffee/65">{item.description}</p>
         )}
-        <p className="mt-1 font-bold text-terra">{item.price}</p>
+        <p className="mt-1 font-bold text-terra">{euro(item.price)}</p>
       </div>
       <button
         onClick={add}
@@ -39,8 +41,18 @@ function MenuItem({ item }) {
 }
 
 export default function Menu() {
-  const sections = Array.isArray(siteData.menu) ? siteData.menu : [];
-  if (sections.length === 0) return null;
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => setData({ categories: [], menus: [] }));
+  }, []);
+
+  if (!data) return null;
+  const { categories = [], menus = [] } = data;
+  if (categories.length === 0 && menus.length === 0) return null;
 
   return (
     <section id="speisekarte" className="bg-sand/60 py-20">
@@ -53,14 +65,22 @@ export default function Menu() {
         </p>
 
         <div className="mt-10 space-y-10">
-          {sections.map((section, i) => (
-            <div key={i}>
-              <h3 className="mb-4 font-display text-xl font-bold text-terradark">
-                {section.title || section.name || `Kategorie ${i + 1}`}
-              </h3>
+          {menus.length > 0 && (
+            <div>
+              <h3 className="mb-4 font-display text-xl font-bold text-terradark">🍽️ Menüs</h3>
               <ul className="space-y-3">
-                {(section.items || []).map((item, j) => (
-                  <MenuItem key={j} item={item} />
+                {menus.map((item) => (
+                  <MenuItem key={item.id} item={item} />
+                ))}
+              </ul>
+            </div>
+          )}
+          {categories.map((section) => (
+            <div key={section.title}>
+              <h3 className="mb-4 font-display text-xl font-bold text-terradark">{section.title}</h3>
+              <ul className="space-y-3">
+                {section.items.map((item) => (
+                  <MenuItem key={item.id} item={item} />
                 ))}
               </ul>
             </div>

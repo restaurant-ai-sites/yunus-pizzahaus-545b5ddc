@@ -11,7 +11,7 @@ export async function POST(request) {
     }
 
     const settings = await getSettings();
-    const pricing = priceCart(cart, settings, orderType);
+    const pricing = await priceCart(cart, settings, orderType);
     if (pricing.error) return NextResponse.json({ error: pricing.error }, { status: 400 });
 
     const captured = await capturePaypalOrder(settings, paypalOrderId);
