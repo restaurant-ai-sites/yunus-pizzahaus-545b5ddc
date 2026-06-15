@@ -1,14 +1,14 @@
-import { Poppins, Inter } from "next/font/google";
+import { Marcellus, Karla } from "next/font/google";
 import "./globals.css";
 import siteData from "../data/site-data.json";
 
-const displayFont = Poppins({
+const displayFont = Marcellus({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400"],
   variable: "--font-display",
 });
 
-const bodyFont = Inter({
+const bodyFont = Karla({
   subsets: ["latin"],
   variable: "--font-body",
 });
