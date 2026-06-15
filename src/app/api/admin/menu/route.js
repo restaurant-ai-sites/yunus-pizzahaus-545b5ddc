@@ -20,13 +20,14 @@ export async function POST(request) {
       method: "POST",
       body: JSON.stringify({
         project_id: PROJECT_ID,
-        category: body.category || (body.is_menu ? "Menüs" : "Sonstiges"),
+        category: body.category || (body.is_menu ? "Aktionen" : "Sonstiges"),
         name: body.name,
         description: body.description || "",
         price: Number(body.price),
         image_url: body.image_url || null,
         prep_minutes: Number(body.prep_minutes) || 0,
         is_menu: Boolean(body.is_menu),
+        combo_items: Array.isArray(body.combo_items) ? body.combo_items : [],
         active: body.active !== false,
         sort_order: Number(body.sort_order) || 0,
       }),
@@ -51,6 +52,7 @@ export async function PATCH(request) {
     if (fields.price !== undefined) update.price = Number(fields.price);
     if (fields.image_url !== undefined) update.image_url = fields.image_url;
     if (fields.prep_minutes !== undefined) update.prep_minutes = Number(fields.prep_minutes) || 0;
+    if (fields.combo_items !== undefined) update.combo_items = Array.isArray(fields.combo_items) ? fields.combo_items : [];
     if (fields.is_menu !== undefined) update.is_menu = Boolean(fields.is_menu);
     if (fields.active !== undefined) update.active = Boolean(fields.active);
     if (fields.sort_order !== undefined) update.sort_order = Number(fields.sort_order);

@@ -26,6 +26,11 @@ function MenuItem({ item }) {
         {item.description && (
           <p className="mt-0.5 text-sm text-coffee/65">{item.description}</p>
         )}
+        {item.is_menu && item.combo_items?.length > 0 && (
+          <p className="mt-0.5 text-sm text-coffee/65">
+            Enthält: {item.combo_items.map((ci) => `${ci.qty > 1 ? ci.qty + "× " : ""}${ci.name}`).join(", ")}
+          </p>
+        )}
         <p className="mt-1 font-bold text-terra">{euro(item.price)}</p>
       </div>
       <button
@@ -67,7 +72,7 @@ export default function Menu() {
         <div className="mt-10 space-y-10">
           {menus.length > 0 && (
             <div>
-              <h3 className="mb-4 font-display text-xl font-bold text-terradark">🍽️ Menüs</h3>
+              <h3 className="mb-4 font-display text-xl font-bold text-terradark">🔥 Aktionen</h3>
               <ul className="space-y-3">
                 {menus.map((item) => (
                   <MenuItem key={item.id} item={item} />

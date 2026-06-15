@@ -288,7 +288,7 @@ function SettingsTab({ adminKey }) {
   );
 }
 
-const emptyMenuForm = { name: "", description: "", price: "", category: "", image_url: "", is_menu: false, prep_minutes: "" };
+const emptyMenuForm = { name: "", description: "", price: "", category: "", image_url: "", is_menu: false, prep_minutes: "", combo_items: [] };
 
 function MenuTab({ adminKey }) {
   const [items, setItems] = useState(null);
@@ -325,11 +325,22 @@ function MenuTab({ adminKey }) {
     e.preventDefault();
     setMsg("");
     if (!form.name || form.price === "") { setMsg("Name und Preis sind erforderlich."); return; }
+    if (form.is_menu && form.combo_items.length === 0) { setMsg("Bitte mindestens einen Artikel für die Aktion auswählen."); return; }
+
+    const payload = { ...form };
+    if (form.is_menu) {
+      const maxPrep = form.combo_items.reduce((max, ci) => {
+        const src = items.find((i) => i.id === ci.id);
+        return Math.max(max, Number(src?.prep_minutes) || 0);
+      }, 0);
+      payload.prep_minutes = maxPrep;
+    }
+
     try {
       if (editingId) {
-        await api("/api/admin/menu", adminKey, { method: "PATCH", body: JSON.stringify({ id: editingId, ...form }) });
+        await api("/api/admin/menu", adminKey, { method: "PATCH", body: JSON.stringify({ id: editingId, ...payload }) });
       } else {
-        await api("/api/admin/menu", adminKey, { method: "POST", body: JSON.stringify(form) });
+        await api("/api/admin/menu", adminKey, { method: "POST", body: JSON.stringify(payload) });
       }
       setForm(emptyMenuForm);
       setEditingId(null);
@@ -347,12 +358,30 @@ function MenuTab({ adminKey }) {
       image_url: item.image_url || "",
       is_menu: item.is_menu,
       prep_minutes: item.prep_minutes || "",
+      combo_items: item.combo_items || [],
     });
   }
 
   function cancelEdit() {
     setEditingId(null);
     setForm(emptyMenuForm);
+  }
+
+  function toggleComboItem(comboItem) {
+    setForm((f) => {
+      const exists = f.combo_items.some((ci) => ci.id === comboItem.id);
+      if (exists) {
+        return { ...f, combo_items: f.combo_items.filter((ci) => ci.id !== comboItem.id) };
+      }
+      return { ...f, combo_items: [...f.combo_items, { id: comboItem.id, name: comboItem.name, qty: 1 }] };
+    });
+  }
+
+  function setComboQty(id, qty) {
+    setForm((f) => ({
+      ...f,
+      combo_items: f.combo_items.map((ci) => (ci.id === id ? { ...ci, qty: Math.max(1, Number(qty) || 1) } : ci)),
+    }));
   }
 
   async function toggleActive(item) {
@@ -378,17 +407,42 @@ function MenuTab({ adminKey }) {
         </div>
         <input placeholder="Beschreibung" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <input placeholder="Preis (€) *" type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls} />
-          <input placeholder="Zubereitungszeit (Min.)" type="number" step="5" min="0" value={form.prep_minutes} onChange={(e) => setForm({ ...form, prep_minutes: e.target.value })} className={inputCls} />
+          <input placeholder={form.is_menu ? "Aktionspreis (€) *" : "Preis (€) *"} type="number" step="0.01" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls} />
+          {!form.is_menu && (
+            <input placeholder="Zubereitungszeit (Min.)" type="number" step="5" min="0" value={form.prep_minutes} onChange={(e) => setForm({ ...form, prep_minutes: e.target.value })} className={inputCls} />
+          )}
         </div>
         <input type="file" accept="image/jpeg,image/png,image/webp"
           onChange={(e) => e.target.files[0] && uploadImage(e.target.files[0])} className="text-sm" />
         {uploading && <p className="text-sm text-coffee/60">Bild wird hochgeladen…</p>}
         {form.image_url && <img src={form.image_url} alt="" className="h-20 w-20 rounded-xl object-cover" />}
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.is_menu} onChange={(e) => setForm({ ...form, is_menu: e.target.checked })} />
-          🍽️ Dies ist ein Menü (Kombo-Paket aus mehreren Artikeln)
+          <input type="checkbox" checked={form.is_menu} onChange={(e) => setForm({ ...form, is_menu: e.target.checked, combo_items: e.target.checked ? form.combo_items : [] })} />
+          🔥 Dies ist eine Aktion (Paket aus mehreren Artikeln zum Vorteilspreis)
         </label>
+        {form.is_menu && (
+          <div className="rounded-xl bg-cream p-3">
+            <p className="mb-2 text-sm font-semibold">Enthaltene Artikel auswählen:</p>
+            {items.filter((i) => !i.is_menu).length === 0 && (
+              <p className="text-sm text-coffee/60">Lege zuerst einzelne Artikel an (z.B. Pizza, Cola, Pommes).</p>
+            )}
+            <div className="space-y-2">
+              {items.filter((i) => !i.is_menu).map((i) => {
+                const selected = form.combo_items.find((ci) => ci.id === i.id);
+                return (
+                  <label key={i.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={!!selected} onChange={() => toggleComboItem(i)} />
+                    <span className="flex-1">{i.name} <span className="text-coffee/50">({euro(i.price)})</span></span>
+                    {selected && (
+                      <input type="number" min="1" value={selected.qty} onChange={(e) => setComboQty(i.id, e.target.value)}
+                        className="w-16 rounded-lg border border-coffee/20 bg-white px-2 py-1 text-sm" />
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {msg && <p className="text-sm text-red-700">{msg}</p>}
         <div className="flex items-center gap-4">
           <button className={btnCls} disabled={uploading}>{editingId ? "Speichern" : "Hinzufügen"}</button>
@@ -404,10 +458,15 @@ function MenuTab({ adminKey }) {
             {item.image_url && <img src={item.image_url} alt="" className="h-14 w-14 rounded-xl object-cover" />}
             <div className="min-w-0 flex-1">
               <p className="font-display font-bold">
-                {item.is_menu && "🍽️ "}{item.name}{" "}
+                {item.is_menu && "🔥 "}{item.name}{" "}
                 <span className="text-sm font-normal text-coffee/60">· {item.category}</span>
               </p>
               {item.description && <p className="text-sm text-coffee/65">{item.description}</p>}
+              {item.is_menu && item.combo_items?.length > 0 && (
+                <p className="text-sm text-coffee/65">
+                  Enthält: {item.combo_items.map((ci) => `${ci.qty > 1 ? ci.qty + "× " : ""}${ci.name}`).join(", ")}
+                </p>
+              )}
               <p className="text-sm font-bold text-terra">
                 {euro(item.price)}
                 {item.prep_minutes > 0 && <span className="ml-2 font-normal text-coffee/60">· ⏱️ {item.prep_minutes} Min.</span>}
