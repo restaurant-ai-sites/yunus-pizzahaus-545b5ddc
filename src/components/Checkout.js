@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getCart, setQty, clearCart, parsePriceClient, euro } from "../lib/cart";
+import siteData from "../data/site-data.json";
 
 const inputCls =
   "w-full rounded-xl border border-coffee/20 bg-cream px-4 py-3 outline-none transition-colors focus:border-terra";
+
+function pickupTime(prepMinutes) {
+  return new Date(Date.now() + (prepMinutes || 0) * 60_000).toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
+}
 
 export default function Checkout() {
   const [cart, setCart] = useState([]);
@@ -200,6 +209,14 @@ export default function Checkout() {
           <input placeholder="Lieferadresse *" value={address} onChange={(e) => setAddress(e.target.value)} className={inputCls} />
         )}
       </div>
+
+      {/* Abholung-Hinweis */}
+      {orderType === "pickup" && settings && (
+        <p className="rounded-2xl bg-sand/60 p-4 text-center text-sm text-coffee/75">
+          📍 Du kannst deine Bestellung um <strong>{pickupTime(settings.prepTimeMinutes)} Uhr</strong> bei{" "}
+          <strong>{siteData.restaurant.address || siteData.restaurant.name}</strong> abholen.
+        </p>
+      )}
 
       {/* Toplam */}
       <div className="rounded-2xl bg-sand/60 p-5 text-sm">

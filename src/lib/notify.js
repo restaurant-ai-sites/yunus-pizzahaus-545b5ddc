@@ -46,24 +46,52 @@ export async function notifyOwnerNewOrder(order, pricing) {
   );
 }
 
-export async function notifyCustomerOrderConfirmed(order, pricing, prepMinutes) {
-  if (!order.customer_email) return;
-  const typeLabel = order.order_type === "delivery" ? "geliefert" : "zur Abholung bereit";
-  await sendEmail(
-    order.customer_email,
-    `Bestellbestätigung — ${siteData.restaurant.name}`,
-    `
+function pickupTime(prepMinutes) {
+  return new Date(Date.now() + prepMinutes * 60_000).toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
+}
+
+function fulfillmentNote(order, prepMinutes) {
+  if (order.order_type === "delivery") {
+    return `<p>Ihre Bestellung wurde aufgenommen und wird in ca. <strong>${prepMinutes} Minuten</strong> zu Ihnen nach Hause geliefert${order.delivery_address ? ` (${order.delivery_address})` : ""}.</p>`;
+  }
+  return `<p>Sie können Ihre Bestellung um <strong>${pickupTime(prepMinutes)} Uhr</strong> bei <strong>${siteData.restaurant.address || siteData.restaurant.name}</strong> abholen.</p>`;
+}
+
+function orderEmailHtml(order, lines, total, prepMinutes, intro) {
+  return `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto">
       <h2>${siteData.restaurant.name}</h2>
-      <p>Vielen Dank für Ihre Bestellung, ${order.customer_name}!</p>
-      <table style="width:100%;border-collapse:collapse">${formatLines(pricing.lines)}</table>
+      <p>${intro}</p>
+      <table style="width:100%;border-collapse:collapse">${formatLines(lines)}</table>
       <hr>
-      <p align="right"><strong>Gesamt: ${pricing.total.toFixed(2).replace(".", ",")} €</strong></p>
+      <p align="right"><strong>Gesamt: ${total.toFixed(2).replace(".", ",")} €</strong></p>
       <p>${order.payment_status === "paid" ? "Ihre Zahlung ist eingegangen (PayPal)." : "Bitte zahlen Sie bar bei " + (order.order_type === "delivery" ? "Lieferung" : "Abholung") + "."}</p>
-      <p>Ihre Bestellung wird in ca. <strong>${prepMinutes} Minuten</strong> ${typeLabel}.</p>
+      ${fulfillmentNote(order, prepMinutes)}
       <p><strong>${siteData.restaurant.name}</strong><br>
       ${siteData.restaurant.address || ""}<br>
       ${siteData.restaurant.phone || ""}</p>
-    </div>`
+    </div>`;
+}
+
+export async function notifyCustomerOrderConfirmed(order, pricing, prepMinutes) {
+  if (!order.customer_email) return;
+  await sendEmail(
+    order.customer_email,
+    `Bestellbestätigung — ${siteData.restaurant.name}`,
+    orderEmailHtml(order, pricing.lines, pricing.total, prepMinutes, `Vielen Dank für Ihre Bestellung, ${order.customer_name}!`)
+  );
+}
+
+/** Admin Bestellart (Lieferung/Abholung) nachträglich ändert — Kunde informieren. */
+export async function notifyCustomerOrderTypeChanged(order, prepMinutes) {
+  if (!order.customer_email) return;
+  await sendEmail(
+    order.customer_email,
+    `Update zu Ihrer Bestellung — ${siteData.restaurant.name}`,
+    orderEmailHtml(order, order.items || [], Number(order.total_amount || 0), prepMinutes, `Es gibt ein Update zu Ihrer Bestellung, ${order.customer_name}:`)
   );
 }

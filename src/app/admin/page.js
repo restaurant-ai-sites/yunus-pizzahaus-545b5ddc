@@ -40,9 +40,11 @@ export default function AdminPage() {
   async function login(e) {
     e.preventDefault();
     setError("");
+    const key = adminKey.trim();
     try {
-      await api("/api/admin/settings", adminKey);
-      sessionStorage.setItem("adminKey", adminKey);
+      await api("/api/admin/settings", key);
+      sessionStorage.setItem("adminKey", key);
+      setAdminKey(key);
       setAuthed(true);
     } catch {
       setError("Falsches Passwort.");
@@ -114,6 +116,16 @@ function OrdersTab({ adminKey }) {
     } catch (e) { setMsg(e.message); }
   }
 
+  async function setOrderType(id, order_type) {
+    try {
+      await api("/api/admin/orders", adminKey, {
+        method: "PATCH",
+        body: JSON.stringify({ id, order_type }),
+      });
+      load();
+    } catch (e) { setMsg(e.message); }
+  }
+
   return (
     <div className="mt-8">
       <div className="flex flex-wrap items-center gap-4">
@@ -136,9 +148,13 @@ function OrdersTab({ adminKey }) {
                 <p className="font-display font-bold">
                   {new Date(o.created_at).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}{" "}
                   · {o.customer_name}
-                  <span className="ml-2 text-sm font-normal">
-                    {o.order_type === "delivery" ? "🚗 Lieferung" : "🏃 Abholung"}
-                  </span>
+                </p>
+                <p className="mt-1">
+                  <select value={o.order_type} onChange={(e) => setOrderType(o.id, e.target.value)}
+                    className="rounded-lg border border-coffee/20 bg-cream px-2 py-1 text-sm">
+                    <option value="delivery">🚗 Lieferung</option>
+                    <option value="pickup">🏃 Abholung</option>
+                  </select>
                 </p>
                 <p className="text-sm text-coffee/65">
                   📞 {o.customer_phone || "—"}
